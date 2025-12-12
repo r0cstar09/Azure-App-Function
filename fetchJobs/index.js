@@ -9,12 +9,13 @@ module.exports = async function (context, req) {
       throw new Error("Missing Adzuna credentials");
     }
 
+    const query = req.query.q || "developer";
+
     const url =
       `https://api.adzuna.com/v1/api/jobs/ca/search/1` +
       `?app_id=${ADZUNA_ID}` +
       `&app_key=${ADZUNA_KEY}` +
-      `&results_per_page=5` +
-      `&what=developer`;
+      `&what=${encodeURIComponent(query)}`;
 
     const response = await axios.get(url);
 
@@ -22,12 +23,12 @@ module.exports = async function (context, req) {
       status: 200,
       body: response.data
     };
-  } catch (error) {
+  } catch (err) {
     context.res = {
       status: 500,
       body: {
-        error: error.message,
-        details: error.response?.data || null
+        error: err.message,
+        details: err.response?.data || null
       }
     };
   }
