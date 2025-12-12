@@ -2,17 +2,14 @@ const axios = require("axios");
 
 module.exports = async function (context, req) {
   try {
-    const ADZUNA_ID = process.env.ADZUNA_APP_ID;
-    const ADZUNA_KEY = process.env.ADZUNA_APP_KEY;
-
-    if (!ADZUNA_ID || !ADZUNA_KEY) {
-      throw new Error("Missing Adzuna credentials");
-    }
+    // HARD-CODED FOR DEBUGGING
+    const ADZUNA_ID = "4932376e";
+    const ADZUNA_KEY = "da19c3e0f2a2b74a51b6f8ca2a2ff545";
 
     const query = req.query.q || "developer";
 
     const url =
-      `https://api.adzuna.com/v1/api/jobs/ca/search/1` +
+      "https://api.adzuna.com/v1/api/jobs/ca/search/1" +
       `?app_id=${ADZUNA_ID}` +
       `&app_key=${ADZUNA_KEY}` +
       `&what=${encodeURIComponent(query)}`;
