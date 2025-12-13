@@ -1,51 +1,46 @@
 const axios = require("axios");
 
-const SYSTEM_PROMPT = `
-You are scoring job postings for a cybersecurity professional transitioning into B2B sales.
-Score each job from 0–10 based on overall fit.
-Return JSON ONLY as: { "score": number, "reason": string }.
-`;
-
 module.exports = async function (context, req) {
   try {
-    const jobs = req.body;
-    if (!Array.isArray(jobs)) throw new Error("Expected array of normalized jobs");
+    const ENDPOINT = "https://r0cst-mj4pr9nd-eastus2.cognitiveservices.azure.com";
+    const DEPLOYMENT = "gpt-5.2-chat"; // NOT the resource name
+    const API_KEY = "REDACTED_REPLACE_AFTER_ROTATION";
 
-    const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
-    const apiKey = process.env.AZURE_OPENAI_API_KEY;
-    const deployment = process.env.AZURE_OPENAI_DEPLOYMENT;
+    const response = await axios.post(
+      `${ENDPOINT}/openai/deployments/${DEPLOYMENT}/chat/completions?api-version=2024-02-15-preview`,
+      {
+        messages: [
+          {
+            role: "system",
+            content:
+              "Score a cybersecurity job from 0–10. Return JSON only: {\"score\": number, \"reason\": string}"
+          },
+          {
+            role: "user",
+            content: "Senior SOC Analyst role requiring SIEM, IR, cloud security."
+          }
+        ],
+        temperature: 0.2
+      },
+      {
+        headers: {
+          "api-key": API_KEY,
+          "Content-Type": "application/json"
+        }
+      }
+    );
 
-    if (!endpoint || !apiKey || !deployment) {
-      throw new Error("Missing Azure OpenAI configuration");
-    }
-
-    const scored = [];
-    for (const job of jobs) {
-      const userContent = JSON.stringify({
-        title: job.title,
-        company: job.company,
-        location: job.location,
-        description: job.description
-      });
-
-      const res = await axios.post(
-        `${endpoint}openai/deployments/${deployment}/chat/completions?api-version=2024-06-01`,
-        {
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: userContent }
-          ],
-          temperature: 0.2
-        },
-        { headers: { "api-key": apiKey } }
-      );
-
-      const parsed = JSON.parse(res.data.choices[0].message.content);
-      scored.push({ ...job, score: parsed.score, reason: parsed.reason });
-    }
-
-    context.res = { status: 200, body: scored };
+    context.res = {
+      status: 200,
+      body: response.data.choices[0].message.content
+    };
   } catch (err) {
-    context.res = { status: 500, body: { error: err.message } };
+    context.res = {
+      status: 500,
+      body: {
+        error: err.message,
+        details: err.response?.data || null
+      }
+    };
   }
 };
