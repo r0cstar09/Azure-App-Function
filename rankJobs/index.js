@@ -4,7 +4,7 @@ module.exports = async function (context, req) {
   try {
     const ENDPOINT = "https://r0cst-mj4pr9nd-eastus2.cognitiveservices.azure.com";
     const DEPLOYMENT = "gpt-5.2-chat"; // NOT the resource name
-    const API_KEY = "REDACTED_REPLACE_AFTER_ROTATION";
+    const API_KEY = "DZx3inHSdU0wGU29sqrUW8VokGZRqoVBFGjYzPpBj1WKFCg7ylNTJQQJ99BLACHYHv6XJ3w3AAAAACOGKJvI";
 
     const response = await axios.post(
       `${ENDPOINT}/openai/deployments/${DEPLOYMENT}/chat/completions?api-version=2024-02-15-preview`,
