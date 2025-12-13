@@ -27,4 +27,4 @@ module.exports = async function (context, req) {
       body: { error: err.message }
     };
   }
-};
+};KEY RESPONSIBILITIES
