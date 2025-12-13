@@ -1,38 +1,70 @@
 const axios = require("axios");
 
+const SYSTEM_PROMPT = `
+You are scoring job postings for a cybersecurity professional.
+Score each job from 0 to 10 based on overall fit.
+Return JSON ONLY in this format:
+{ "score": number, "reason": string }
+`;
+
 module.exports = async function (context, req) {
   try {
-    const ENDPOINT = "https://r0cst-mj4pr9nd-eastus2.cognitiveservices.azure.com";
-    const DEPLOYMENT = "gpt-5.2-chat"; // NOT the resource name
-    const API_KEY = "DZx3inHSdU0wGU29sqrUW8VokGZRqoVBFGjYzPpBj1WKFCg7ylNTJQQJ99BLACHYHv6XJ3w3AAAAACOGKJvI";
+    const jobs = req.body;
 
-    const response = await axios.post(
-      `${ENDPOINT}/openai/deployments/${DEPLOYMENT}/chat/completions?api-version=2024-02-15-preview`,
-      {
-        messages: [
-          {
-            role: "system",
-            content:
-              "Score a cybersecurity job from 0–10. Return JSON only: {\"score\": number, \"reason\": string}"
-          },
-          {
-            role: "user",
-            content: "Senior SOC Analyst role requiring SIEM, IR, cloud security."
+    if (!Array.isArray(jobs)) {
+      throw new Error("Expected array of normalized jobs");
+    }
+
+    const endpoint = "https://r0cst-mj4pr9nd-eastus2.cognitiveservices.azure.com";
+    const apiKey = "DZx3inHSdU0wGU29sqrUW8VokGZRqoVBFGjYzPpBj1WKFCg7ylNTJQQJ99BLACHYHv6XJ3w3AAAAACOGKJvI";
+    const deployment = "gpt-5.2-chat";
+
+    if (!endpoint || !apiKey || !deployment) {
+      throw new Error("Missing Azure OpenAI configuration");
+    }
+
+    const scoredJobs = [];
+
+    for (const job of jobs) {
+      const response = await axios.post(
+        `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2024-02-15-preview`,
+        {
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            {
+              role: "user",
+              content: `
+Title: ${job.title}
+Company: ${job.company}
+Location: ${job.location}
+Description: ${job.description}
+`
+            }
+          ],
+          temperature: 1
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "api-key": apiKey
           }
-        ],
-        temperature: 1
-      },
-      {
-        headers: {
-          "api-key": API_KEY,
-          "Content-Type": "application/json"
         }
-      }
-    );
+      );
+
+      const modelOutput = JSON.parse(
+        response.data.choices[0].message.content
+      );
+
+      scoredJobs.push({
+        ...job,
+        score: modelOutput.score,
+        reason: modelOutput.reason
+      });
+    }
 
     context.res = {
       status: 200,
-      body: response.data.choices[0].message.content
+      body: scoredJobs
     };
   } catch (err) {
     context.res = {
