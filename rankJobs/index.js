@@ -20,7 +20,7 @@ module.exports = async function (context, req) {
             content: "Senior SOC Analyst role requiring SIEM, IR, cloud security."
           }
         ],
-        temperature: 0.2
+        temperature: 1
       },
       {
         headers: {
