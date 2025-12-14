@@ -1,20 +1,21 @@
 module.exports = async function (context, req) {
   try {
-    const jobs = req.body;
+    const jobs = req.body?.results;
 
     if (!Array.isArray(jobs)) {
-      throw new Error("Expected array of job objects");
+      throw new Error("Expected req.body.results to be an array");
     }
 
     const normalized = jobs.map(job => ({
-      id: job.id || null,
-      redirect_url: job.redirect_url || null,
+      id: job.id,
       title: job.title || "",
-      company: job.company || "",
-      location: job.location || "",
+      company: job.company?.display_name || "",
+      location: job.location?.display_name || "",
       salary_min: job.salary_min ?? null,
       salary_max: job.salary_max ?? null,
       description: job.description || "",
+      redirect_url: job.redirect_url || "",
+      created: job.created || "",
       score: 0,
       reason: "Not scored yet"
     }));
@@ -26,7 +27,9 @@ module.exports = async function (context, req) {
   } catch (err) {
     context.res = {
       status: 500,
-      body: { error: err.message }
+      body: {
+        error: err.message
+      }
     };
   }
 };
