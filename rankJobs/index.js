@@ -2,8 +2,15 @@ const axios = require("axios");
 
 const SYSTEM_PROMPT = `
 You are scoring job postings for a cybersecurity professional.
-Score each job from 0 to 10 based on overall fit.
-Return JSON ONLY in this format:
+
+Rules:
+- Score from 0 to 10 (integer only)
+- Be concise and factual
+- Return ONLY valid JSON
+- No markdown
+- No explanations outside JSON
+
+Required format:
 { "score": number, "reason": string }
 `;
 
@@ -19,10 +26,6 @@ module.exports = async function (context, req) {
     const apiKey = "DZx3inHSdU0wGU29sqrUW8VokGZRqoVBFGjYzPpBj1WKFCg7ylNTJQQJ99BLACHYHv6XJ3w3AAAAACOGKJvI";
     const deployment = "gpt-5.2-chat";
 
-    if (!endpoint || !apiKey || !deployment) {
-      throw new Error("Missing Azure OpenAI configuration");
-    }
-
     const scoredJobs = [];
 
     for (const job of jobs) {
@@ -37,7 +40,9 @@ module.exports = async function (context, req) {
 Title: ${job.title}
 Company: ${job.company}
 Location: ${job.location}
-Description: ${job.description}
+
+Description:
+${job.description}
 `
             }
           ],
@@ -51,14 +56,22 @@ Description: ${job.description}
         }
       );
 
-      const modelOutput = JSON.parse(
-        response.data.choices[0].message.content
-      );
+      const raw = response.data.choices[0].message.content.trim();
+
+      // Defensive JSON extraction
+      const start = raw.indexOf("{");
+      const end = raw.lastIndexOf("}") + 1;
+
+      if (start === -1 || end === -1) {
+        throw new Error("Model did not return valid JSON");
+      }
+
+      const parsed = JSON.parse(raw.slice(start, end));
 
       scoredJobs.push({
         ...job,
-        score: modelOutput.score,
-        reason: modelOutput.reason
+        score: parsed.score,
+        reason: parsed.reason
       });
     }
 
@@ -70,8 +83,7 @@ Description: ${job.description}
     context.res = {
       status: 500,
       body: {
-        error: err.message,
-        details: err.response?.data || null
+        error: err.message
       }
     };
   }
