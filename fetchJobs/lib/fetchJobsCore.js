@@ -12,7 +12,7 @@ module.exports = async function fetchJobsCore() {
     `?app_id=${ADZUNA_ID}` +
     `&app_key=${ADZUNA_KEY}` +
     `&what=${encodeURIComponent(query)}` +
-    `&max_days_old=3` +
+    `&max_days_old=30` +
     `&results_per_page=50`;
 
   const response = await axios.get(url);
