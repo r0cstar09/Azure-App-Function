@@ -11,7 +11,7 @@ Rules:
 `;
 
 const RESUME_URL =
-  "https://jobhuntresumes.blob.core.windows.net/resumes/Tony%20Muzo.md";
+  "https://jobhuntresumes.blob.core.windows.net/resumes/master-resume.md";
 
 module.exports = async function (context, req) {
   try {
