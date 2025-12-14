@@ -11,7 +11,7 @@ Rules:
 `;
 
 const RESUME_URL =
-  "https://jobhuntresumes.blob.core.windows.net/resumes/master-resume.md";
+  "https://jobhuntresumes.blob.core.windows.net/resumes/master-resume.md?sp=r&st=2025-12-14T03:53:58Z&se=2026-12-13T12:08:58Z&spr=https&sv=2024-11-04&sr=b&sig=XhcXabP%2Bb1Sg4Mi2mNkN3zFOIw3eXYtj2IUEmtVin%2B4%3D";
 
 module.exports = async function (context, req) {
   try {
