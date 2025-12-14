@@ -1,12 +1,11 @@
 const fs = require("fs");
 const path = require("path");
 
-// === IMPORT PIPELINE STEPS ===
-// These MUST be plain functions, NOT Azure HTTP handlers
-const fetchJobs = require("../fetchJobs");
-const scoreJobs = require("../scoreJobs");
-const rankJobs = require("../rankJobs");
-const generateApplication = require("../generateApplication");
+// === IMPORT CORE PIPELINE STEPS (NOT HTTP FUNCTIONS) ===
+const fetchJobs = require("../fetchJobs/lib/fetchJobsCore");
+const scoreJobs = require("../scoreJobs/lib/scoreJobsCore");
+const rankJobs = require("../rankJobs/lib/rankJobsCore");
+const generateApplication = require("../generateApplication/lib/generateApplicationCore");
 
 // === CONFIG ===
 const SCORE_THRESHOLD = 3;
@@ -39,14 +38,20 @@ module.exports = async function (context, myTimer) {
   try {
     // === FETCH ===
     context.log("[STEP] Fetching jobs");
-    const jobs = await fetchJobs();
+    const fetchResult = await fetchJobs();          // Adzuna response
+    const jobs = fetchResult.results || [];         // <-- FIX
     context.log(`[INFO] Fetched ${jobs.length} jobs`);
 
-    // === SCORE ===
+    if (!jobs.length) {
+      context.log("[INFO] No jobs found, exiting.");
+      return;
+    }
+
+    // === SCORE (normalize) ===
     context.log("[STEP] Scoring jobs");
     const scored = await scoreJobs(jobs);
 
-    // === RANK ===
+    // === RANK (AI scoring) ===
     context.log("[STEP] Ranking jobs");
     const ranked = await rankJobs(scored);
 
@@ -87,6 +92,6 @@ module.exports = async function (context, myTimer) {
     context.log(`[DONE] Orchestrator completed at ${new Date().toISOString()}`);
   } catch (err) {
     context.log.error("[FATAL] Orchestrator crashed:", err);
-    throw err; // marks invocation as failed in Azure
+    throw err;
   }
 };
