@@ -28,7 +28,7 @@ Rules:
 `;
 
 const RESUME_URL =
-  "https://jobhuntresumes.blob.core.windows.net/resumes/master-resume.md";
+  "https://jobhuntresumes.blob.core.windows.net/resumes/master-resume.md?sp=r&st=2025-12-14T21:02:47Z&se=2026-12-31T05:17:47Z&sv=2024-11-04&sr=b&sig=cDZUAg9nTWsFoLmNFz%2BhKGrmnViWN5wTsQTBj4NUZ50%3D";
 
 module.exports = async function (context, req) {
   try {
