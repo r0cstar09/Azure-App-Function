@@ -12,10 +12,13 @@ module.exports = async function (context, req) {
       "https://api.adzuna.com/v1/api/jobs/ca/search/1" +
       `?app_id=${ADZUNA_ID}` +
       `&app_key=${ADZUNA_KEY}` +
-      `&what=${encodeURIComponent(query)}`;
+      `&what=${encodeURIComponent(query)}` +
+      `&max_days_old=3` +
+      `&results_per_page=50`;
 
     const response = await axios.get(url);
 
+    // IMPORTANT: return full Adzuna payload (includes id, redirect_url)
     context.res = {
       status: 200,
       body: response.data

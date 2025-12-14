@@ -7,6 +7,8 @@ module.exports = async function (context, req) {
     }
 
     const normalized = jobs.map(job => ({
+      id: job.id || null,
+      redirect_url: job.redirect_url || null,
       title: job.title || "",
       company: job.company || "",
       location: job.location || "",
