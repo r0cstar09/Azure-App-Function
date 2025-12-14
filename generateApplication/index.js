@@ -7,7 +7,6 @@ Rules:
 - Do NOT invent experience, companies, titles, or skills.
 - Tailor language to the job description.
 - Be concise and professional.
-- Output JSON ONLY.
 `;
 
 const RESUME_URL =
