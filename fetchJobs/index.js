@@ -6,8 +6,7 @@ module.exports = async function (context, req) {
     const ADZUNA_ID = "4932376e";
     const ADZUNA_KEY = "da19c3e0f2a2b74a51b6f8ca2a2ff545";
 
-    const query =
-      "cyber security OR cybersecurity OR security analyst OR SOC OR incident response OR threat intelligence OR blue team";
+    const query = "cyber security";
 
     const url =
       "https://api.adzuna.com/v1/api/jobs/ca/search/1" +
