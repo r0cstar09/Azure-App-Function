@@ -1,91 +1,109 @@
 const axios = require("axios");
 
-const SYSTEM_PROMPT = `
-You are a senior technical recruiter and cybersecurity hiring manager.
+/* =========================
+   HARD-CODED SECRETS
+   ========================= */
+const AZURE_OPENAI_ENDPOINT =
+  "https://r0cst-mj4pr9nd-eastus2.cognitiveservices.azure.com";
 
+const AZURE_OPENAI_KEY =
+  "DZx3inHSdU0wGU29sqrUW8VokGZRqoVBFGjYzPpBj1WKFCg7ylNTJQQJ99BLACHYHv6XJ3w3AAAAACOGKJvI";
+
+const AZURE_OPENAI_DEPLOYMENT =
+  "gpt-5.2-chat";
+
+/* ========================= */
+
+const SYSTEM_PROMPT = `
 Take my original resume and ignore the information that talks about all of the duties I had in the job.
-Instead, use my job title and infer how someone with that job title would reasonably have experience
+Instead, use my job titles and infer the type of experience someone in that role would typically have,
 aligned to the job description.
 
 Rules:
 - Use ONLY information present in the resume.
-- Do NOT invent experience, companies, titles, dates, or certifications.
-- You may rephrase responsibilities to better align with the job description.
-- Do NOT explicitly claim use of tools unless they appear in the resume.
-- If a tool is mentioned in the job description, imply familiarity without false claims.
+- Do NOT invent companies, roles, tools, or experience.
+- You may rephrase responsibilities to align with the job description.
+- Do NOT claim direct experience with tools unless explicitly listed.
 - Be concise, professional, and realistic.
 `;
 
 const RESUME_URL =
-  "https://jobhuntresumes.blob.core.windows.net/resumes/master-resume.md?sp=r&st=2025-12-14T03:53:58Z&se=2026-12-13T12:08:58Z&spr=https&sv=2024-11-04&sr=b&sig=XhcXabP%2Bb1Sg4Mi2mNkN3zFOIw3eXYtj2IUEmtVin%2B4%3D";
+  "https://jobhuntresumes.blob.core.windows.net/resumes/master-resume.md";
 
 module.exports = async function (context, req) {
   try {
-    const { job } = req.body;
-    if (!job) throw new Error("Expected { job } in request body");
+    /* --------------------------------
+       1. Normalize input payload
+    --------------------------------- */
+    const job = req.body?.job ?? req.body;
 
-    // 1. Fetch master resume
+    if (!job || !job.title || !job.description) {
+      throw new Error("Invalid job payload");
+    }
+
+    const normalizedJob = {
+      title: job.title,
+      company: job.company || "Unknown Company",
+      location: job.location || "N/A",
+      description: job.description
+    };
+
+    /* --------------------------------
+       2. Fetch master resume
+    --------------------------------- */
     const resumeResponse = await axios.get(RESUME_URL);
     const resumeText = resumeResponse.data;
 
-    // 2. Azure OpenAI config
-    const endpoint =
-      "https://r0cst-mj4pr9nd-eastus2.cognitiveservices.azure.com";
-    const apiKey =
-      "DZx3inHSdU0wGU29sqrUW8VokGZRqoVBFGjYzPpBj1WKFCg7ylNTJQQJ99BLACHYHv6XJ3w3AAAAACOGKJvI";
-    const deployment = "gpt-5.2-chat";
-
-    if (!endpoint || !apiKey || !deployment) {
-      throw new Error("Missing Azure OpenAI configuration");
-    }
-
-    // 3. Prompt (MARKDOWN OUTPUT ONLY)
+    /* --------------------------------
+       3. Build prompt (MARKDOWN output)
+    --------------------------------- */
     const userPrompt = `
 MASTER RESUME:
 ${resumeText}
 
 JOB POSTING:
-Title: ${job.title}
-Company: ${job.company}
-Location: ${job.location}
+Title: ${normalizedJob.title}
+Company: ${normalizedJob.company}
+Location: ${normalizedJob.location}
 
 Description:
-${job.description}
+${normalizedJob.description}
 
 TASK:
-Return a SINGLE Markdown document (NO JSON, NO code blocks) with the following structure:
+Return a SINGLE Markdown document (no JSON, no code blocks) with:
 
 # Tony Muzo
-Toronto, ON | tony@tonymuzo.dev | 437-962-8228 | https://tonymuzo.dev
+629 King Street West, Toronto, ON M5V 0G9  
+437-962-8228 | tony@tonymuzo.dev | tonymuzo.dev
 
-## Professional Summary
-(3–4 concise lines tailored to the role)
+## Summary
+(3–4 lines tailored to this role)
 
-## Core Skills
-(8–12 bullet points, realistic and aligned to the job)
+## Skills
+(8–12 concise bullets aligned to the job)
 
 ## Professional Experience
-For EACH role in the master resume:
+For each role in the resume:
 - Company | Title | Location | Dates
-- 3–6 bullet points tailored to the job description
+- 3–6 tailored bullets per role
 
 ## Certifications
-(List exactly as in the master resume)
+(List exactly as in the resume)
+
+## Competitions & Achievements
+(Include only if present)
 
 ---
 
 ## Cover Letter
-(Max 1 page, tailored to the role)
-
-IMPORTANT:
-- Use ONLY facts present in the master resume
-- Do NOT fabricate tools, employers, or experience
-- Output MUST be valid Markdown
+(Max 1 page, tailored)
 `;
 
-    // 4. Call Azure OpenAI
+    /* --------------------------------
+       4. Call Azure OpenAI
+    --------------------------------- */
     const response = await axios.post(
-      `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2024-02-15-preview`,
+      `${AZURE_OPENAI_ENDPOINT}/openai/deployments/${AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=2024-02-15-preview`,
       {
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
@@ -96,21 +114,24 @@ IMPORTANT:
       {
         headers: {
           "Content-Type": "application/json",
-          "api-key": apiKey
+          "api-key": AZURE_OPENAI_KEY
         }
       }
     );
 
-    // 5. RETURN MARKDOWN DIRECTLY
-    const markdownOutput = response.data.choices[0].message.content;
+    /* --------------------------------
+       5. Return Markdown directly
+    --------------------------------- */
+    const markdown = response.data.choices[0].message.content;
 
     context.res = {
       status: 200,
       headers: {
         "Content-Type": "text/markdown; charset=utf-8"
       },
-      body: markdownOutput
+      body: markdown
     };
+
   } catch (err) {
     context.res = {
       status: 500,
