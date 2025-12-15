@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const markdownpdf = require("markdown-pdf");
 
 // === IMPORT CORE PIPELINE STEPS (NOT HTTP FUNCTIONS) ===
 const fetchJobs = require("../fetchJobs/lib/fetchJobsCore");
@@ -27,6 +28,17 @@ function ensureDir(dir) {
   }
 }
 
+function markdownToPdf(mdPath, pdfPath) {
+  return new Promise((resolve, reject) => {
+    markdownpdf()
+      .from(mdPath)
+      .to(pdfPath, function (err) {
+        if (err) reject(err);
+        else resolve();
+      });
+  });
+}
+
 module.exports = async function (context, myTimer) {
   const startTs = new Date().toISOString();
   context.log(`[START] Orchestrator fired at ${startTs}`);
@@ -38,7 +50,7 @@ module.exports = async function (context, myTimer) {
   try {
     // === FETCH ===
     context.log("[STEP] Fetching jobs");
-    const jobs = await fetchJobs(); // <-- FIXED (already an array)
+    const jobs = await fetchJobs();
     context.log(`[INFO] Fetched ${jobs.length} jobs`);
 
     if (!jobs.length) {
@@ -46,11 +58,11 @@ module.exports = async function (context, myTimer) {
       return;
     }
 
-    // === SCORE (NORMALIZE) ===
+    // === SCORE ===
     context.log("[STEP] Scoring jobs");
     const scored = await scoreJobs(jobs);
 
-    // === RANK (AI SCORING) ===
+    // === RANK ===
     context.log("[STEP] Ranking jobs");
     const ranked = await rankJobs(scored);
 
@@ -66,11 +78,13 @@ module.exports = async function (context, myTimer) {
 
       const companyDir = path.join(OUTPUT_DIR, company);
       const jobDir = path.join(companyDir, title);
-      const outFile = path.join(jobDir, "application.md");
+
+      const mdFile = path.join(jobDir, "application.md");
+      const pdfFile = path.join(jobDir, "application.pdf");
 
       ensureDir(jobDir);
 
-      if (fs.existsSync(outFile)) {
+      if (fs.existsSync(mdFile) && fs.existsSync(pdfFile)) {
         context.log(`[SKIP] Exists: ${company}/${title}`);
         continue;
       }
@@ -78,12 +92,22 @@ module.exports = async function (context, myTimer) {
       context.log(`[GEN] ${job.title} @ ${job.company}`);
 
       try {
-        const markdown = await generateApplication(job);
-        fs.writeFileSync(outFile, markdown, "utf8");
-        context.log(`[OK] Saved ${company}/${title}/application.md`);
+        // --- Generate Markdown ---
+        if (!fs.existsSync(mdFile)) {
+          const markdown = await generateApplication(job);
+          fs.writeFileSync(mdFile, markdown, "utf8");
+          context.log(`[OK] Markdown saved`);
+        }
+
+        // --- Convert to PDF ---
+        if (!fs.existsSync(pdfFile)) {
+          await markdownToPdf(mdFile, pdfFile);
+          context.log(`[OK] PDF saved`);
+        }
+
       } catch (err) {
         context.log.error(
-          `[FAIL] Generate for ${job.title} @ ${job.company}: ${err.message}`
+          `[FAIL] ${job.title} @ ${job.company}: ${err.message}`
         );
       }
     }
