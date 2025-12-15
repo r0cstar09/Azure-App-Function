@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const puppeteer = require("puppeteer");
-const { marked } = require("marked");
+const { execFile } = require("child_process");
 
 // === IMPORT CORE PIPELINE STEPS (NOT HTTP FUNCTIONS) ===
 const fetchJobs = require("../fetchJobs/lib/fetchJobsCore");
@@ -29,50 +28,20 @@ function ensureDir(dir) {
   }
 }
 
-async function markdownToPdf(markdown, pdfPath) {
-  const html = `
-  <html>
-    <head>
-      <meta charset="utf-8" />
-      <style>
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
-                       Roboto, Helvetica, Arial, sans-serif;
-          padding: 40px;
-          line-height: 1.5;
-          color: #111;
+function markdownToDocx(mdPath, docxPath) {
+  return new Promise((resolve, reject) => {
+    execFile(
+      "pandoc",
+      [mdPath, "-o", docxPath],
+      (err, stdout, stderr) => {
+        if (err) {
+          reject(new Error(stderr || err.message));
+        } else {
+          resolve();
         }
-        h1 { font-size: 28px; }
-        h2 { font-size: 22px; margin-top: 1.2em; }
-        h3 { font-size: 18px; margin-top: 1em; }
-        ul { margin-left: 20px; }
-      </style>
-    </head>
-    <body>
-      ${marked.parse(markdown)}
-    </body>
-  </html>
-  `;
-
-  const browser = await puppeteer.launch({
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+      }
+    );
   });
-
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: "networkidle0" });
-
-  await page.pdf({
-    path: pdfPath,
-    format: "A4",
-    margin: {
-      top: "20mm",
-      bottom: "20mm",
-      left: "20mm",
-      right: "20mm"
-    }
-  });
-
-  await browser.close();
 }
 
 // === ORCHESTRATOR ===
@@ -111,29 +80,28 @@ module.exports = async function (context, myTimer) {
 
       const jobDir = path.join(OUTPUT_DIR, company, title);
       const mdFile = path.join(jobDir, "application.md");
-      const pdfFile = path.join(jobDir, "application.pdf");
+      const docxFile = path.join(jobDir, "application.docx");
 
       ensureDir(jobDir);
 
-      if (fs.existsSync(mdFile) && fs.existsSync(pdfFile)) {
+      if (fs.existsSync(mdFile) && fs.existsSync(docxFile)) {
         context.log(`[SKIP] Exists: ${company}/${title}`);
         continue;
       }
 
       context.log(`[GEN] ${job.title} @ ${job.company}`);
 
-      let markdown;
+      // --- Generate Markdown ---
       if (!fs.existsSync(mdFile)) {
-        markdown = await generateApplication(job);
+        const markdown = await generateApplication(job);
         fs.writeFileSync(mdFile, markdown, "utf8");
         context.log("[OK] Markdown saved");
-      } else {
-        markdown = fs.readFileSync(mdFile, "utf8");
       }
 
-      if (!fs.existsSync(pdfFile)) {
-        await markdownToPdf(markdown, pdfFile);
-        context.log("[OK] PDF saved");
+      // --- Convert to DOCX ---
+      if (!fs.existsSync(docxFile)) {
+        await markdownToDocx(mdFile, docxFile);
+        context.log("[OK] DOCX saved");
       }
     }
 
