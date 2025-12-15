@@ -1,6 +1,6 @@
 // scorejobs/index.js
 
-const scoreJobsCore = require("../lib/scoreJobsCore");
+const scoreJobsCore = require("./lib/scoreJobsCore");
 
 module.exports = async function (context, req) {
   try {

@@ -1,4 +1,4 @@
-const fetchJobsCore = require("../lib/fetchJobsCore");
+const fetchJobsCore = require("./lib/fetchJobsCore");
 
 module.exports = async function (context, req) {
   try {
