@@ -2,10 +2,10 @@ const fs = require("fs");
 const path = require("path");
 
 // === IMPORT CORE PIPELINE STEPS (NOT HTTP FUNCTIONS) ===
-const fetchJobs = require("../fetchJobs/lib/fetchJobsCore");
-const scoreJobs = require("../scoreJobs/lib/scoreJobsCore");
-const rankJobs = require("../rankJobs/lib/rankJobsCore");
-const generateApplication = require("../generateApplication/lib/generateApplicationCore");
+const fetchJobs = require("./fetchJobs/lib/fetchJobsCore");
+const scoreJobs = require("./scoreJobs/lib/scoreJobsCore");
+const rankJobs = require("./rankJobs/lib/rankJobsCore");
+const generateApplication = require("./generateApplication/lib/generateApplicationCore");
 
 // === CONFIG ===
 const SCORE_THRESHOLD = 3;
