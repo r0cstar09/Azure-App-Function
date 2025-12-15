@@ -38,8 +38,7 @@ module.exports = async function (context, myTimer) {
   try {
     // === FETCH ===
     context.log("[STEP] Fetching jobs");
-    const fetchResult = await fetchJobs();          // Adzuna response
-    const jobs = fetchResult.results || [];         // <-- FIX
+    const jobs = await fetchJobs(); // <-- FIXED (already an array)
     context.log(`[INFO] Fetched ${jobs.length} jobs`);
 
     if (!jobs.length) {
@@ -47,11 +46,11 @@ module.exports = async function (context, myTimer) {
       return;
     }
 
-    // === SCORE (normalize) ===
+    // === SCORE (NORMALIZE) ===
     context.log("[STEP] Scoring jobs");
     const scored = await scoreJobs(jobs);
 
-    // === RANK (AI scoring) ===
+    // === RANK (AI SCORING) ===
     context.log("[STEP] Ranking jobs");
     const ranked = await rankJobs(scored);
 
